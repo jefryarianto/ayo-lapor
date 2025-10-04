@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .photo-actions {
+            display: none;
+            margin-top: 15px;
+            width: 100%;
+            justify-content: center;
+            background-color: #f0f0f0;
+            padding: 10px;
+        }
+        .photo-actions.show {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div id="photoActionsBefore" class="photo-actions">
+        <button class="btn btn-danger">🗑️ HAPUS FOTO SEBELUM</button>
+    </div>
+    
+    <div id="photoActionsAfter" class="photo-actions">
+        <button class="btn btn-danger">🗑️ HAPUS FOTO SESUDAH</button>
+    </div>
+    
+    <button onclick="testBefore()">Test Before Actions</button>
+    <button onclick="testAfter()">Test After Actions</button>
+    <button onclick="hideAll()">Hide All</button>
+    
+    <script>
+        function testBefore() {
+            const photoActions = document.getElementById('photoActionsBefore');
+            console.log('Before photoActions element:', photoActions);
+            if (photoActions) {
+                photoActions.classList.add('show');
+                console.log('Added show class to before actions');
+            } else {
+                console.log('Could not find photoActionsBefore element');
+            }
+        }
+        
+        function testAfter() {
+            const photoActions = document.getElementById('photoActionsAfter');
+            console.log('After photoActions element:', photoActions);
+            if (photoActions) {
+                photoActions.classList.add('show');
+                console.log('Added show class to after actions');
+            } else {
+                console.log('Could not find photoActionsAfter element');
+            }
+        }
+        
+        function hideAll() {
+            document.getElementById('photoActionsBefore').classList.remove('show');
+            document.getElementById('photoActionsAfter').classList.remove('show');
+        }
+    </script>
+</body>
+</html>

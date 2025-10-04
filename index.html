@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laporan Harian Proyek</title>
+    <meta name="theme-color" content="#007BFF" />
+    <meta name="description" content="Aplikasi Laporan Harian Proyek - PWA" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="laporSBP" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <style>
+      /* CSS untuk modal kamera yang diperbaiki */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        overflow: hidden;
+      }
+      .modal-content {
+        background-color: #000;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        border: none;
+        border-radius: 0;
+      }
+      .camera-status-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: transparent;
+        color: white;
+        padding: 10px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        z-index: 15;
+      }
+      .camera-time {
+        font-weight: 600;
+      }
+      .camera-battery {
+        font-weight: 600;
+      }
+      .camera-header {
+        position: absolute;
+        top: 40px;
+        left: 0;
+        right: 0;
+        background: transparent;
+        color: white;
+        padding: 10px;
+        z-index: 10;
+        text-align: center;
+      }
+      .camera-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .camera-preview {
+        flex: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        width: 100%;
+        height: calc(100% - 120px);
+        margin: 50px 0 70px 0;
+      }
+      #cameraVideo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      /* Viewfinder overlay for better framing */
+      .viewfinder-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        max-width: 300px;
+        height: 80%;
+        max-height: 400px;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        border-radius: 10px;
+        box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
+        z-index: 5;
+        pointer-events: none;
+      }
+      .viewfinder-corner {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border: 2px solid white;
+      }
+      .corner-tl {
+        top: -2px;
+        left: -2px;
+        border-right: none;
+        border-bottom: none;
+      }
+      .corner-tr {
+        top: -2px;
+        right: -2px;
+        border-left: none;
+        border-bottom: none;
+      }
+      .corner-bl {
+        bottom: -2px;
+        left: -2px;
+        border-right: none;
+        border-top: none;
+      }
+      .corner-br {
+        bottom: -2px;
+        right: -2px;
+        border-left: none;
+        border-top: none;
+      }
+      .camera-controls {
+        position: absolute;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        z-index: 10;
+      }
+      .camera-controls .btn {
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 20px;
+        border: none;
+      }
+      .camera-controls .btn-secondary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+      .camera-controls .btn-primary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+      /* Tombol capture di tengah - diperbesar */
+      .capture-btn-container {
+        position: absolute;
+        bottom: 25px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+      }
+      .capture-btn {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+      .capture-btn:active {
+        transform: scale(0.95);
+        background: #f0f0f0;
+      }
+      .capture-btn-inner {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid #007bff;
+      }
+      .camera-loading,
+      .camera-error {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 16px;
+        text-align: center;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 20px;
+        border-radius: 10px;
+        z-index: 5;
+      }
+      .camera-error {
+        color: #ff6b6b;
+      }
+      /* CSS untuk preview foto di container */
+      .photo-preview-img {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        object-fit: contain; /* Ini yang diperbaiki */
+      }
+      .photo-preview-area.has-photo {
+        border-color: #27ae60;
+        background: #f8fff9;
+        padding: 15px;
+      }
+      .photo-preview-area {
+        border: 2px dashed #bdc3c7;
+        border-radius: 8px;
+        padding: 40px 20px;
+        text-align: center;
+        background: white;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      /* CSS untuk photo actions */
+      .photo-actions {
+        display: none;
+        margin-top: 15px;
+        width: 100%;
+        justify-content: center;
+        z-index: 10;
+        position: relative;
+      }
+      .photo-actions.show {
+        display: flex;
+      }
+      
+      /* CSS untuk photo option buttons */
+      .photo-option-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md) var(--spacing-lg);
+        border: none;
+        border-radius: var(--border-radius);
+        font-size: var(--font-size-md);
+        font-weight: var(--font-weight-semibold);
+        font-family: var(--font-family);
+        text-decoration: none;
+        cursor: pointer;
+        transition: all var(--transition-normal);
+        position: relative;
+        overflow: hidden;
+        background: var(--primary-gradient);
+        color: var(--white);
+        box-shadow: var(--shadow-md);
+        margin: 0 var(--spacing-xs);
+      }
+      
+      .photo-option-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left var(--transition-slow);
+      }
+      
+      .photo-option-btn:hover::before {
+        left: 100%;
+      }
+      
+      .photo-option-btn:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+      }
+      
+      .photo-option-btn:active {
+        transform: translateY(1px);
+      }
+      
+      /* CSS untuk photo options container */
+      .photo-options {
+        display: flex;
+        justify-content: center;
+        gap: var(--spacing-md);
+        margin: var(--spacing-md) 0;
+        flex-wrap: wrap;
+      }
+      
+      /* Responsive adjustments */
+      @media (max-width: 480px) {
+        .camera-preview {
+          height: calc(100% - 100px);
+          margin: 40px 0 60px 0;
+        }
+        .camera-controls {
+          bottom: 15px;
+          padding: 0 15px;
+        }
+        .camera-controls .btn {
+          padding: 8px 16px;
+          font-size: 13px;
+        }
+        .capture-btn {
+          width: 65px;
+          height: 65px;
+        }
+        .capture-btn-inner {
+          width: 55px;
+          height: 55px;
+        }
+        .camera-header {
+          top: 30px;
+        }
+        .camera-header h3 {
+          font-size: 15px;
+        }
+        /* Smaller viewfinder on mobile */
+        .viewfinder-overlay {
+          width: 85%;
+          max-width: 250px;
+          height: 70%;
+          max-height: 300px;
+        }
+        
+        /* Responsive photo option buttons */
+        .photo-option-btn {
+          padding: var(--spacing-sm) var(--spacing-md);
+          font-size: var(--font-size-sm);
+          margin: 0 2px;
+        }
+      }
+      
+      @media (max-width: 320px) {
+        .photo-option-btn {
+          padding: var(--spacing-xs) var(--spacing-sm);
+          font-size: var(--font-size-xs);
+        }
+      }
+      
+      @media (max-height: 700px) {
+        .camera-preview {
+          height: calc(100% - 90px);
+          margin: 35px 0 55px 0;
+        }
+        .capture-btn-container {
+          bottom: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Connection Status -->
+    <div id="connection-status">✅ Online</div>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+    <!-- Loading Spinner -->
+    <div id="loading-spinner">
+      <div class="spinner-content">
+        <div class="spinner-icon"></div>
+        <div class="spinner-text">Memproses...</div>
+      </div>
+    </div>
+    <div class="container">
+      <h2>📋 LAPORAN HARIAN PROYEK</h2>
+      <div class="form-group">
+        <label>📅 HARI/TANGGAL :</label>
+        <input type="text" id="date" readonly />
+        <small
+          style="color: #666; font-size: 12px; display: block; margin-top: 5px"
+        >
+          Klik untuk memilih tanggal
+        </small>
+      </div>
+      <div class="form-group">
+        <label>🔧 JENIS PEKERJAAN :</label>
+        <select id="jenisPekerjaanSelect" required>
+          <option value="" disabled selected>PILIH JENIS PEKERJAAN</option>
+          <option value="RABAT BETON UNTUK BAHU JALAN">
+            RABAT BETON UNTUK BAHU JALAN
+          </option>
+          <option value="PASANGAN BATU">PASANGAN BATU</option>
+          <option value="PASANGAN BATU DENGAN MORTAR">
+            PASANGAN BATU DENGAN MORTAR
+          </option>
+          <option value="tambah-baru">➕ TAMBAH BARU</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>📍 STA. AWAL :</label>
+        <input type="text" id="staAwal" placeholder="CONTOH: 1234 R" />
+        <small
+          style="color: #666; font-size: 12px; display: block; margin-top: 5px"
+        >
+          Format: angka + arah (contoh: 1234 R)
+        </small>
+      </div>
+      <div class="form-group">
+        <label>📍 STA. AKHIR :</label>
+        <input type="text" id="staAkhir" placeholder="CONTOH: 5678 L" />
+        <small
+          style="color: #666; font-size: 12px; display: block; margin-top: 5px"
+        >
+          Format: angka + arah (contoh: 5678 L)
+        </small>
+      </div>
+      <div class="form-group">
+        <label>📏 PANJANG :</label>
+        <input type="text" id="panjang" placeholder="DIHITUNG OTOMATIS" readonly />
+        <small
+          style="color: #666; font-size: 12px; display: block; margin-top: 5px"
+        >
+          Panjang hasil pengurangan STA AKHIR - STA AWAL (dalam Meter)
+        </small>
+      </div>
+      <div class="form-group">
+        <label>📷 VISUAL SEBELUM :</label>
+        <div class="photo-section-improved">
+          <div class="photo-header">
+            <div class="photo-main-title">FOTO SEBELUM PEKERJAAN</div>
+          </div>
+          <div class="photo-options">
+            <button class="photo-option-btn" onclick="openCamera('before')">
+              <span>📸</span>
+              Ambil Foto
+            </button>
+            <input
+              type="file"
+              id="uploadBefore"
+              class="file-input"
+              accept="image/*"
+              style="display: none"
+            />
+            <button
+              class="photo-option-btn"
+              onclick="document.getElementById('uploadBefore').click()"
+            >
+              <span>🖼️</span>
+              Pilih Foto
+            </button>
+          </div>
+          <div id="previewContainerBefore" class="photo-preview-area">
+            <img
+              id="previewBefore"
+              class="photo-preview-img"
+              style="display: none"
+              onclick="viewPhoto('before')"
+            />
+            <div id="noPhotoBefore" class="no-photo-placeholder">
+              <img
+                src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiNmOGY5ZmEiIHN0cm9rZT0iIzQ0NDQiIHN0cm9rZS13aWR0aD0iNSIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjIwIiBmaWxsPSIjZjhmOWZhIiBzdHJva2U9IiM0NDQ0IiBzdHJva2Utd2lkdGg9IjMiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1IiBmaWxsPSIjNDQ0NCIvPjwvc3ZnPg=="
+                alt="Kamera"
+                style="width: 50px; height: 50px; margin-bottom: 10px"
+              />
+              <p style="color: #666; font-size: 14px">Belum ada foto</p>
+              <p style="color: #666; font-size: 12px">
+                Klik tombol di atas untuk menambahkan foto
+              </p>
+            </div>
+            <div
+              id="photoActionsBefore"
+              class="photo-actions"
+            >
+              <button
+                class="btn btn-danger remove-photo-btn"
+                onclick="confirmRemovePhoto('before')"
+                style="padding: 8px 15px; font-size: 12px; display: flex; align-items: center; gap: 5px;"
+              >
+                <span>🗑️</span>
+                <span>HAPUS FOTO</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- VISUAL SELESAI - STRUKTUR YANG DIPERBAIKI -->
+      <div class="form-group">
+        <label>📷 VISUAL SELESAI :</label>
+        <div class="photo-section-improved">
+          <div class="photo-header">
+            <div class="photo-main-title">FOTO SETELAH PEKERJAAN</div>
+          </div>
+          <div class="photo-options">
+            <button class="photo-option-btn" onclick="openCamera('after')">
+              <span>📸</span>
+              Ambil Foto
+            </button>
+            <input
+              type="file"
+              id="uploadAfter"
+              class="file-input"
+              accept="image/*"
+              style="display: none"
+            />
+            <button
+              class="photo-option-btn"
+              onclick="document.getElementById('uploadAfter').click()"
+            >
+              <span>🖼️</span>
+              Pilih Foto
+            </button>
+          </div>
+          <div id="previewContainerAfter" class="photo-preview-area">
+            <img
+              id="previewAfter"
+              class="photo-preview-img"
+              style="display: none"
+              onclick="viewPhoto('after')"
+            />
+            <div id="noPhotoAfter" class="no-photo-placeholder">
+              <img
+                src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDUiIGZpbGw9IiNmOGY5ZmEiIHN0cm9rZT0iIzQ0NDQiIHN0cm9rZS13aWR0aD0iNSIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjIwIiBmaWxsPSIjZjhmOWZhIiBzdHJva2U9IiM0NDQ0IiBzdHJva2Utd2lkdGg9IjMiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1IiBmaWxsPSIjNDQ0NCIvPjwvc3ZnPg=="
+                alt="Kamera"
+                style="width: 50px; height: 50px; margin-bottom: 10px"
+              />
+              <p style="color: #666; font-size: 14px">Belum ada foto</p>
+              <p style="color: #666; font-size: 12px">
+                Klik tombol di atas untuk menambahkan foto
+              </p>
+            </div>
+            <div
+              id="photoActionsAfter"
+              class="photo-actions"
+            >
+              <button
+                class="btn btn-danger remove-photo-btn"
+                onclick="confirmRemovePhoto('after')"
+                style="padding: 8px 15px; font-size: 12px; display: flex; align-items: center; gap: 5px;"
+              >
+                <span>🗑️</span>
+                <span>HAPUS FOTO</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>📊 RENCANA HARI INI :</label>
+        <input type="text" id="rencana" placeholder="CONTOH: 12.5 M3" />
+        <small
+          style="color: #666; font-size: 12px; display: block; margin-top: 5px"
+        >
+          Format: angka + satuan (contoh: 12.5 M3)
+        </small>
+      </div>
+      <div class="form-group">
+        <label>✅ REALISASI HARI INI :</label>
+        <input type="text" id="realisasi" placeholder="CONTOH: 15.2 M3" />
+        <small
+          style="color: #666; font-size: 12px; display: block; margin-top: 5px"
+        >
+          Format: angka + satuan (contoh: 15.2 M3)
+        </small>
+      </div>
+      <div class="form-group">
+        <label>📈 DEVIASI :</label>
+        <input
+          type="text"
+          id="deviasi"
+          placeholder="DIHITUNG OTOMATIS"
+          readonly
+        />
+      </div>
+      <div class="form-group">
+        <label>⚠️ MASALAH :</label>
+        <textarea
+          id="masalah"
+          placeholder="DESKRIPSIKAN MASALAH JIKA ADA"
+          rows="4"
+        ></textarea>
+      </div>
+      <div class="form-group">
+        <label>📦 PENGGUNAAN BAHAN :</label>
+        <div id="bahanContainer">
+          <div class="bahan-row">
+            <select class="material-select" required>
+              <option value="" disabled selected>PILIH MATERIAL</option>
+              <option value="SEMEN">SEMEN</option>
+              <option value="PASIR">PASIR</option>
+              <option value="BATU PASANG">BATU PASANG</option>
+              <option value="BATU PECAH">BATU PECAH</option>
+              <option value="tambah-baru">➕ TAMBAH BARU</option>
+            </select>
+            <input type="text" class="qty-input" placeholder="QTY" />
+            <input
+              type="text"
+              class="satuan-input"
+              placeholder="SATUAN"
+              readonly
+            />
+            <button class="remove-row-btn">-</button>
+          </div>
+        </div>
+        <button type="button" class="add-row-btn" onclick="addRow()">
+          + TAMBAH BARIS BAHAN
+        </button>
+      </div>
+      <div class="btn-container">
+        <button class="btn btn-secondary" onclick="saveDraft()">
+          💾 SIMPAN DRAFT
+        </button>
+        <button class="btn btn-primary" onclick="confirmGenerateReport()">
+          🖼️ GENERATE LAPORAN PNG
+        </button>
+        <button class="btn btn-danger" onclick="confirmReset()">
+          🔄 RESET FORM
+        </button>
+      </div>
+      <div id="preview"></div>
+    </div>
+    <!-- Camera Modal - YANG SUDAH DIPERBAIKI -->
+    <div id="cameraModal" class="modal">
+      <div class="modal-content">
+        <!-- Status Bar -->
+        <div class="camera-status-bar">
+          <div class="camera-time" id="cameraTime">17.08</div>
+          <div class="camera-battery">100%</div>
+        </div>
+        <!-- Header -->
+        <div class="camera-header">
+          <h3 id="cameraTitle">AMBIL FOTO - SEBELUM</h3>
+        </div>
+        <!-- Area Preview Kamera -->
+        <div class="camera-preview">
+          <video id="cameraVideo" autoplay playsinline></video>
+          <div class="viewfinder-overlay">
+            <div class="viewfinder-corner corner-tl"></div>
+            <div class="viewfinder-corner corner-tr"></div>
+            <div class="viewfinder-corner corner-bl"></div>
+            <div class="viewfinder-corner corner-br"></div>
+          </div>
+          <div id="cameraLoading" class="camera-loading" style="display: none">
+            Mengakses kamera...
+          </div>
+          <div id="cameraError" class="camera-error" style="display: none">
+            Tidak dapat mengakses kamera
+          </div>
+        </div>
+        <!-- Tombol Capture -->
+        <div class="capture-btn-container">
+          <div class="capture-btn" onclick="capturePhoto()">
+            <div class="capture-btn-inner"></div>
+          </div>
+        </div>
+        <!-- Kontrol Kamera -->
+        <div class="camera-controls">
+          <button class="btn btn-secondary" onclick="closeCamera()">
+            BATAL
+          </button>
+          <button class="btn btn-primary" onclick="switchCamera()">
+            KAMERA
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Photo View Modal -->
+    <div id="photoViewModal" class="modal">
+      <div class="modal-content default">
+        <button class="modal-close-btn" onclick="closePhotoView()">×</button>
+        <img id="photoViewImg" class="photo-view-img" style="flex-grow: 0; max-width: 100%; height: auto;" />
+        <button class="btn btn-secondary" onclick="closePhotoView()">
+          Tutup
+        </button>
+      </div>
+    </div>
+    <!-- Modal Konfirmasi -->
+    <div id="modal" class="modal">
+      <div class="modal-content default">
+        <h3 id="modalTitle">KONFIRMASI</h3>
+        <p id="modalText">Apakah Anda yakin ingin melanjutkan?</p>
+        <div class="modal-buttons">
+          <button class="btn btn-secondary" onclick="closeModal()">
+            BATAL
+          </button>
+          <button class="btn btn-primary" onclick="executeModalAction()">
+            YA, LANJUTKAN
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Modal Tambah Jenis Pekerjaan -->
+    <div id="modalJenisPekerjaan" class="modal">
+      <div class="modal-content default">
+        <h3>TAMBAH JENIS PEKERJAAN BARU</h3>
+        <input
+          type="text"
+          id="newJenisPekerjaanInput"
+          placeholder="MASUKKAN JENIS PEKERJAAN BARU"
+          class="modal-input"
+        />
+        <div class="modal-buttons">
+          <button
+            class="btn btn-secondary"
+            onclick="closeJenisPekerjaanModal()"
+          >
+            BATAL
+          </button>
+          <button class="btn btn-primary" onclick="addNewJenisPekerjaan()">
+            TAMBAH
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Modal Tambah Material -->
+    <div id="modalTambahMaterial" class="modal">
+      <div class="modal-content default">
+        <h3>TAMBAH MATERIAL BARU</h3>
+        <input
+          type="text"
+          id="newMaterialInput"
+          placeholder="MASUKKAN NAMA MATERIAL BARU"
+          class="modal-input"
+        />
+        <input
+          type="text"
+          id="newSatuanInput"
+          placeholder="MASUKKAN SATUAN (Contoh: M3, ZAK, KG)"
+          class="modal-input"
+        />
+        <div class="modal-buttons">
+          <button
+            class="btn btn-secondary"
+            onclick="closeTambahMaterialModal()"
+          >
+            BATAL
+          </button>
+          <button class="btn btn-primary" onclick="addNewMaterial()">
+            TAMBAH
+          </button>
+        </div>
+      </div>
+    </div>
+    <script src="js/html2canvas.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+      // Variabel untuk kamera
+      let currentStream = null;
+      let currentFacingMode = "environment";
+      let currentPhotoType = null; // Menyimpan tipe foto (before/after)
+      
+      // Fungsi untuk menutup modal ketika klik di luar
+      document.getElementById('modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeModal();
+        }
+      });
+      
+      // Fungsi untuk membuka kamera
+      function openCamera(type) {
+        const modal = document.getElementById("cameraModal");
+        const title = document.getElementById("cameraTitle");
+        currentPhotoType = type; // Simpan tipe foto
+        title.textContent =
+          "AMBIL FOTO - " + (type === "before" ? "SEBELUM" : "SESUDAH");
+        modal.style.display = "flex";
+        // Ensure proper centering
+        modal.style.alignItems = "center";
+        modal.style.justifyContent = "center";
+        // Update waktu
+        updateCameraTime();
+        startCamera();
+      }
+      
+      // Fungsi untuk membuka photo view modal
+      function viewPhoto(type) {
+        const img = document.getElementById(`preview${type.charAt(0).toUpperCase() + type.slice(1)}`);
+        const viewImg = document.getElementById('photoViewImg');
+        const modal = document.getElementById('photoViewModal');
+        if (img.src) {
+          viewImg.src = img.src;
+          modal.style.display = 'flex';
+          // Ensure proper centering
+          modal.style.alignItems = 'center';
+          modal.style.justifyContent = 'center';
+        }
+      }
+      // Fungsi untuk memulai kamera
+      function startCamera() {
+        const constraints = {
+          video: {
+            facingMode: currentFacingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        };
+        const video = document.getElementById("cameraVideo");
+        const loading = document.getElementById("cameraLoading");
+        const error = document.getElementById("cameraError");
+        loading.style.display = "block";
+        error.style.display = "none";
+        // Stop stream sebelumnya jika ada
+        if (currentStream) {
+          currentStream.getTracks().forEach((track) => track.stop());
+        }
+        navigator.mediaDevices
+          .getUserMedia(constraints)
+          .then(function (stream) {
+            currentStream = stream;
+            video.srcObject = stream;
+            loading.style.display = "none";
+            video.onloadedmetadata = function () {
+              video.play();
+            };
+          })
+          .catch(function (err) {
+            console.error("Error accessing camera: ", err);
+            loading.style.display = "none";
+            error.style.display = "block";
+          });
+      }
+      // Fungsi untuk mendapatkan lokasi saat ini dengan nama lokasi
+      function getCurrentLocation() {
+        return new Promise((resolve, reject) => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        const coords = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                        
+                        // Try to get location name using reverse geocoding
+                        getLocationName(lat, lon)
+                            .then(locationName => {
+                                resolve(`${coords} (${locationName})`);
+                            })
+                            .catch(() => {
+                                // If reverse geocoding fails, just return coordinates
+                                resolve(coords);
+                            });
+                    },
+                    error => {
+                        console.error('Error getting location:', error);
+                        resolve('Location not available');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            } else {
+                resolve('Geolocation not supported');
+            }
+        });
+      }
+      
+      // Fungsi untuk mendapatkan nama lokasi dari koordinat
+      function getLocationName(lat, lon) {
+        return new Promise((resolve, reject) => {
+            // Using a simple reverse geocoding approach with Nominatim (OpenStreetMap)
+            // Note: In a production environment, you might want to use a more robust service
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`;
+            
+            // Since we can't make direct requests due to CORS, we'll use a simple approach
+            // For now, we'll just return a generic location name
+            // In a real implementation, you would use a proper reverse geocoding service
+            
+            // Simple approach: return a generic name based on coordinates
+            resolve(`Location near ${lat.toFixed(2)}, ${lon.toFixed(2)}`);
+        });
+      }
+      
+      // Fungsi untuk menutup kamera
+      function closeCamera() {
+        const modal = document.getElementById("cameraModal");
+        modal.style.display = "none";
+        if (currentStream) {
+          currentStream.getTracks().forEach((track) => track.stop());
+          currentStream = null;
+        }
+        currentPhotoType = null; // Reset tipe foto
+      }
+      // Fungsi untuk mengambil foto - DIPERBAIKI
+      async function capturePhoto() {
+        const video = document.getElementById("cameraVideo");
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        // Ukuran canvas disesuaikan dengan aspect ratio yang baik untuk preview
+        const maxWidth = 800;
+        const maxHeight = 600;
+        let width = video.videoWidth;
+        let height = video.videoHeight;
+        // Resize jika terlalu besar
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        context.drawImage(video, 0, 0, width, height);
+        
+        // Get location
+        const location = await getCurrentLocation();
+        
+        // Get timestamp
+        const timestamp = new Date().toLocaleString('id-ID');
+        
+        // Get STA values
+        const staAwal = document.getElementById('staAwal').value || 'N/A';
+        const staAkhir = document.getElementById('staAkhir').value || 'N/A';
+        
+        // Create two-line watermark
+        const staText = `STA: ${staAwal}`;
+        const infoText = `WAKTU: ${timestamp} | LOKASI: ${location}`;
+        
+        // Calculate watermark height for two lines (increased height to accommodate longer text)
+        const watermarkHeight = 70;
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.fillRect(0, canvas.height - watermarkHeight, canvas.width, watermarkHeight);
+        
+        context.fillStyle = 'white';
+        context.textAlign = 'left';
+        
+        // First line: STA (larger and bold)
+        context.font = 'bold 18px Arial';
+        context.fillText(staText, 10, canvas.height - watermarkHeight + 25);
+        
+        // Second line: Timestamp and location
+        context.font = '16px Arial';
+        context.fillText(infoText, 10, canvas.height - watermarkHeight + 50);
+        
+        const photoData = canvas.toDataURL("image/jpeg", 0.8);
+        // Simpan foto berdasarkan tipe yang disimpan
+        if (currentPhotoType) {
+          savePhoto(photoData, currentPhotoType);
+        }
+        showNotification("Foto berhasil diambil!", "success");
+        // LANGSUNG TUTUP MODAL - DIPERBAIKI
+        setTimeout(function() {
+          closeCamera();
+        }, 500); // Add slight delay to ensure photo is saved first
+      }
+      // Fungsi untuk menyimpan foto - DIPERBAIKI
+      function savePhoto(photoData, type) {
+        const preview = document.getElementById(
+          `preview${type.charAt(0).toUpperCase() + type.slice(1)}`
+        );
+        const noPhoto = document.getElementById(
+          `noPhoto${type.charAt(0).toUpperCase() + type.slice(1)}`
+        );
+        const photoActions = document.getElementById(
+          `photoActions${type.charAt(0).toUpperCase() + type.slice(1)}`
+        );
+        const previewContainer = document.getElementById(
+          `previewContainer${type.charAt(0).toUpperCase() + type.slice(1)}`
+        );
+        // Pastikan foto sesuai dengan container
+        preview.src = photoData;
+        preview.style.display = "block";
+        preview.style.maxWidth = "100%";
+        preview.style.maxHeight = "200px";
+        preview.style.objectFit = "contain"; // Ini yang memperbaiki foto keluar container
+        noPhoto.style.display = "none";
+        photoActions.classList.add("show");
+        previewContainer.classList.add("has-photo");
+        
+        // Update draft
+        draft[type + 'Photo'] = photoData;
+        saveDraft();
+        showNotification(`Foto ${type === 'before' ? 'sebelum' : 'sesudah'} berhasil diambil`, 'success');
+      }
+      // Fungsi untuk mengganti kamera
+      function switchCamera() {
+        currentFacingMode =
+          currentFacingMode === "environment" ? "user" : "environment";
+        startCamera();
+      }
+      // Fungsi untuk update waktu
+      function updateCameraTime() {
+        const now = new Date();
+        const timeString =
+          now.getHours().toString().padStart(2, "0") +
+          "." +
+          now.getMinutes().toString().padStart(2, "0");
+        document.getElementById("cameraTime").textContent = timeString;
+      }
+      // Event listener untuk modal
+      document
+        .getElementById("cameraModal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) {
+            closeCamera();
+          }
+        });
+      document
+        .querySelector(".modal-content")
+        .addEventListener("click", function (e) {
+          e.stopPropagation();
+        });
+      // Event listeners untuk file upload
+      document
+        .getElementById("uploadBefore")
+        .addEventListener("change", function () {
+          loadImage(this, "before");
+          updatePhotoPreview("before");
+        });
+      document
+        .getElementById("uploadAfter")
+        .addEventListener("change", function () {
+          loadImage(this, "after");
+          updatePhotoPreview("after");
+        });
+      // Fungsi untuk update tampilan preview foto
+      function updatePhotoPreview(type) {
+        const preview = document.getElementById(
+          `preview${type.charAt(0).toUpperCase() + type.slice(1)}`
+        );
+        const noPhoto = document.getElementById(
+          `noPhoto${type.charAt(0).toUpperCase() + type.slice(1)}`
+        );
+        const photoActions = document.getElementById(
+          `photoActions${type.charAt(0).toUpperCase() + type.slice(1)}`
+        );
+        const previewContainer = document.getElementById(
+          `previewContainer${type.charAt(0).toUpperCase() + type.slice(1)}`
+        );
+
+        if (preview.src && preview.src !== window.location.href) {
+          preview.style.display = "block";
+          preview.style.maxWidth = "100%";
+          preview.style.maxHeight = "200px";
+          preview.style.objectFit = "contain";
+          noPhoto.style.display = "none";
+          photoActions.classList.add("show");
+          previewContainer.classList.add("has-photo");
+        } else {
+          preview.style.display = "none";
+          noPhoto.style.display = "block";
+          photoActions.classList.remove("show");
+          previewContainer.classList.remove("has-photo");
+        }
+      }
+      // Event listener untuk material select change
+      document.addEventListener("change", function (e) {
+        if (e.target.classList.contains("material-select")) {
+          updateSatuan(e.target);
+        }
+      });
+      // Event listener untuk remove row buttons
+      document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("remove-row-btn")) {
+          removeRow(e.target);
+        }
+      });
+      // Event listener untuk qty input
+      document.addEventListener("input", function (e) {
+        if (e.target.classList.contains("qty-input")) {
+          updateBahanData();
+        }
+      });
+      // Event listener untuk rencana dan realisasi
+      document
+        .getElementById("rencana")
+        .addEventListener("blur", hitungDeviasi);
+      document
+        .getElementById("realisasi")
+        .addEventListener("blur", hitungDeviasi);
+      // Inisialisasi preview foto saat load
+      document.addEventListener("DOMContentLoaded", function () {
+        updatePhotoPreview("before");
+        updatePhotoPreview("after");
+      });
+      
+      // Fungsi untuk menutup photo view modal
+      function closePhotoView() {
+        document.getElementById('photoViewModal').style.display = 'none';
+      }
+    </script>
+  </body>
+</html>
