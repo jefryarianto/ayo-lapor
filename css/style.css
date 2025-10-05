@@ -894,6 +894,8 @@ small {
   border-radius: var(--border-radius-lg);
   display: none;
   box-shadow: var(--shadow-md);
+  max-height: 90vh; /* Limit height to prevent overflow */
+  overflow-y: auto; /* Allow scrolling if content exceeds height */
 }
 /* ==================== ANIMATIONS ==================== */
 @keyframes fadeIn {

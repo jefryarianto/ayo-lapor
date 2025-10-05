@@ -1226,9 +1226,8 @@ function buildReportHTML() {
     const deviasiClass = getDeviasiClass(draft.deviasi);
     const deviasiColor = getDeviasiColor(draft.deviasi);
     
-    // Set report dimensions to 90% of viewport width and height
-    const containerWidth = '90vw'; // 90% of viewport width
-    const containerHeight = '90vh'; // 90% of viewport height
+    // Set report dimensions to fit well within the preview container
+    const containerWidth = '100%'; // Use full width of container
     const fontSize = '16px';
     const titleFontSize = '28px';
     const photoHeight = '300px';
@@ -1236,12 +1235,12 @@ function buildReportHTML() {
     const tablePadding = '10px';
     
     return `
-        <div style="font-family: Arial, sans-serif; width: ${containerWidth}; height: ${containerHeight}; margin: 0 auto; padding: 30px; background: white; border: 3px solid #333; box-sizing: border-box; display: flex; flex-direction: column;">
-            <div style="text-align: center; border-bottom: 4px solid #007bff; padding-bottom: 20px; margin-bottom: 25px; flex-shrink: 0;">
+        <div style="font-family: Arial, sans-serif; width: ${containerWidth}; margin: 0 auto; padding: 30px; background: white; border: 3px solid #333; box-sizing: border-box;">
+            <div style="text-align: center; border-bottom: 4px solid #007bff; padding-bottom: 20px; margin-bottom: 25px;">
                 <h1 style="color: #007bff; margin: 0; font-size: ${titleFontSize};">LAPORAN HARIAN PROYEK</h1>
                 <p style="color: #666; margin: 8px 0 0 0; font-size: 16px;">Generated on ${new Date().toLocaleString('id-ID')}</p>
             </div>
-            <div style="flex: 1; overflow-y: auto;">
+            <div style="overflow-y: auto;">
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: ${fontSize};">
                     <tr>
                         <td style="width: 35%; padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">HARI/TANGGAL</td>
@@ -1322,7 +1321,7 @@ function buildReportHTML() {
                     ` : ''}
                 </div>
             </div>
-            <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 3px dashed #ddd; color: #666; font-size: 14px; flex-shrink: 0;">
+            <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 3px dashed #ddd; color: #666; font-size: 14px;">
                 <p>Laporan ini digenerate secara otomatis oleh Sistem Laporan Harian Proyek</p>
             </div>
         </div>
