@@ -1233,7 +1233,8 @@ function buildReportHTML() {
     const containerWidth = isMobile ? '100%' : '1000px'; // Increased from 800px to 1000px
     const fontSize = isMobile ? '14px' : '16px';
     const titleFontSize = isMobile ? '22px' : '28px'; // Increased title size
-    const photoHeight = isMobile ? '180px' : '250px'; // Increased photo height
+    const photoHeight = isMobile ? '200px' : '300px'; // Increased photo height
+    const photoWidth = '100%'; // Make photos full width
     const tablePadding = isMobile ? '6px' : '10px'; // Increased padding
     
     return `
@@ -1307,17 +1308,17 @@ function buildReportHTML() {
                 </table>
             </div>
             ` : ''}
-            <div style="${isMobile ? 'flex-direction: column; gap: 20px;' : 'display: flex; gap: 25px;'} margin-bottom: 25px;">
+            <div style="display: flex; gap: 25px; margin-bottom: 25px; flex-wrap: wrap;">
                 ${draft.beforePhoto ? `
-                <div style="${isMobile ? 'width: 100%;' : 'flex: 1;'}">
+                <div style="flex: 1; min-width: 300px;">
                     <h4 style="color: #666; margin-bottom: 10px; font-size: 16px;">FOTO SEBELUM</h4>
-                    <img src="${draft.beforePhoto}" style="max-width: 100%; height: ${photoHeight}; object-fit: cover; border: 2px solid #ddd; border-radius: 6px;">
+                    <img src="${draft.beforePhoto}" style="width: ${photoWidth}; height: ${photoHeight}; object-fit: cover; border: 2px solid #ddd; border-radius: 6px;">
                 </div>
                 ` : ''}
                 ${draft.afterPhoto ? `
-                <div style="${isMobile ? 'width: 100%;' : 'flex: 1;'}">
+                <div style="flex: 1; min-width: 300px;">
                     <h4 style="color: #666; margin-bottom: 10px; font-size: 16px;">FOTO SESUDAH</h4>
-                    <img src="${draft.afterPhoto}" style="max-width: 100%; height: ${photoHeight}; object-fit: cover; border: 2px solid #ddd; border-radius: 6px;">
+                    <img src="${draft.afterPhoto}" style="width: ${photoWidth}; height: ${photoHeight}; object-fit: cover; border: 2px solid #ddd; border-radius: 6px;">
                 </div>
                 ` : ''}
             </div>
