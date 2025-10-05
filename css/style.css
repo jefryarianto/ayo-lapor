@@ -439,6 +439,13 @@ small {
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
+
+/* Style for disabled options in material select */
+.material-select option:disabled {
+  color: #cccccc;
+  background-color: #f5f5f5;
+}
+
 /* ==================== DEVIASI STYLES ==================== */
 .deviasi-positif {
   color: var(--success);

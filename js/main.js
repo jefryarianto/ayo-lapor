@@ -438,6 +438,10 @@ let draft = {
     masalah: '',
     bahan: []
 };
+
+// Track selected materials to ensure each can only be selected once
+let selectedMaterials = new Set();
+
 let currentModalAction = null;
 let currentMaterialRow = null;
 let currentCameraType = null;
@@ -544,10 +548,30 @@ function setupEventListeners() {
     // Event listener untuk material select
     document.addEventListener('change', function(e) {
         if (e.target.classList.contains('material-select')) {
-            if (e.target.value && e.target.value !== '') {
-                e.target.style.borderColor = "#e1e5e9";
+            const select = e.target;
+            const value = select.value;
+            
+            // Show error if user tries to select an already selected material
+            if (value && value !== '' && value !== 'tambah-baru' && selectedMaterials.has(value)) {
+                // Check if this is actually a duplicate (not just the current selection)
+                let count = 0;
+                document.querySelectorAll('.material-select').forEach(s => {
+                    if (s.value === value) count++;
+                });
+                
+                if (count > 1) {
+                    showNotification('Material ini sudah dipilih sebelumnya!', 'warning');
+                    select.value = ''; // Reset the selection
+                    select.style.borderColor = "#e74c3c";
+                    return;
+                }
             }
-            updateSatuan(e.target);
+            
+            if (value && value !== '') {
+                select.style.borderColor = "#e1e5e9";
+            }
+            
+            updateSatuan(select);
         }
     });
 
@@ -629,13 +653,22 @@ function showPhotoPreview(type, src) {
 function loadBahanData() {
     const container = document.getElementById('bahanContainer');
     container.innerHTML = '';
+    selectedMaterials.clear(); // Clear the selected materials set
+    
     if (draft.bahan && draft.bahan.length > 0) {
         draft.bahan.forEach(b => {
+            // Add to selected materials
+            if (b.material) {
+                selectedMaterials.add(b.material);
+            }
             addBahanRow(b.material, b.qty, b.satuan);
         });
     } else {
         addBahanRow();
     }
+    
+    // Update the options in all selects
+    updateMaterialOptions();
 }
 
 function addBahanRow(material = '', qty = '', satuan = '') {
@@ -656,16 +689,56 @@ function addBahanRow(material = '', qty = '', satuan = '') {
         <button class="remove-row-btn">-</button>
     `;
     container.appendChild(row);
+    
+    // If a material was pre-selected, add it to the selected materials set
+    if (material && material !== '' && material !== 'tambah-baru') {
+        selectedMaterials.add(material);
+    }
+    
+    // Update the material select options based on already selected materials
+    updateMaterialOptions();
+}
+
+function updateMaterialOptions() {
+    // Clear the selected materials set first
+    selectedMaterials.clear();
+    
+    // Collect all currently selected materials
+    const selects = document.querySelectorAll('.material-select');
+    selects.forEach(select => {
+        const value = select.value;
+        if (value && value !== '' && value !== 'tambah-baru') {
+            selectedMaterials.add(value);
+        }
+    });
+    
+    // Update all selects to disable already selected materials
+    selects.forEach(select => {
+        const options = select.querySelectorAll('option');
+        options.forEach(option => {
+            if (option.value !== '' && option.value !== 'tambah-baru') {
+                option.disabled = selectedMaterials.has(option.value);
+            }
+        });
+    });
 }
 
 function updateSatuan(select) {
     const value = select.value;
     const row = select.closest('.bahan-row');
     const satuanInput = row.querySelector('.satuan-input');
+    
     if (value === 'tambah-baru') {
         showTambahMaterialModal(row);
         return;
     }
+    
+    // Update selected materials set
+    updateSelectedMaterials();
+    
+    // Update the options in all selects
+    updateMaterialOptions();
+    
     const satuanMap = {
         'SEMEN': 'ZAK',
         'PASIR': 'M3',
@@ -674,6 +747,17 @@ function updateSatuan(select) {
     };
     satuanInput.value = satuanMap[value] || '';
     updateBahanData();
+}
+
+function updateSelectedMaterials() {
+    selectedMaterials.clear();
+    const selects = document.querySelectorAll('.material-select');
+    selects.forEach(select => {
+        const value = select.value;
+        if (value && value !== '' && value !== 'tambah-baru') {
+            selectedMaterials.add(value);
+        }
+    });
 }
 
 function updateBahanData() {
@@ -687,6 +771,13 @@ function updateBahanData() {
             draft.bahan.push({ material, qty, satuan });
         }
     });
+    
+    // Update selected materials set
+    updateSelectedMaterials();
+    
+    // Update the options in all selects
+    updateMaterialOptions();
+    
     saveDraft();
 }
 
@@ -1075,6 +1166,14 @@ function addRow() {
 function removeRow(button) {
     const row = button.closest('.bahan-row');
     const rows = document.querySelectorAll('.bahan-row');
+    
+    // Remove the material from selected materials if it was selected
+    const materialSelect = row.querySelector('.material-select');
+    const selectedValue = materialSelect.value;
+    if (selectedValue && selectedValue !== '' && selectedValue !== 'tambah-baru') {
+        selectedMaterials.delete(selectedValue);
+    }
+    
     if (rows.length > 1) {
         row.remove();
         updateBahanData();
@@ -1082,6 +1181,9 @@ function removeRow(button) {
     } else {
         showNotification('Minimal satu baris harus ada', 'warning');
     }
+    
+    // Update the options in all selects
+    updateMaterialOptions();
 }
 
 // ==================== REPORT GENERATION ====================
@@ -1090,10 +1192,21 @@ function generateReport() {
     const preview = document.getElementById('preview');
     preview.innerHTML = buildReportHTML();
     preview.style.display = 'block';
+    
+    // Get device pixel ratio for better quality on mobile
+    const pixelRatio = Math.min(window.devicePixelRatio || 2, 3);
+    
     html2canvas(preview, {
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        backgroundColor: '#ffffff',
+        width: preview.scrollWidth,
+        height: preview.scrollHeight,
+        dpi: 300,
+        letterRendering: true,
+        allowTaint: true,
+        pixelRatio: pixelRatio // Use device pixel ratio for better quality
     }).then(canvas => {
         const link = document.createElement('a');
         const dateStr = new Date().toISOString().split('T')[0];
@@ -1112,13 +1225,23 @@ function generateReport() {
 function buildReportHTML() {
     const deviasiClass = getDeviasiClass(draft.deviasi);
     const deviasiColor = getDeviasiColor(draft.deviasi);
+    
+    // Check if we're on a mobile device
+    const isMobile = window.innerWidth <= 768;
+    
+    // Adjust styles for mobile
+    const containerWidth = isMobile ? '100%' : '800px';
+    const fontSize = isMobile ? '14px' : '16px';
+    const titleFontSize = isMobile ? '20px' : '24px';
+    const photoHeight = isMobile ? '150px' : '200px';
+    
     return `
-        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: white; border: 2px solid #333;">
+        <div style="font-family: Arial, sans-serif; max-width: ${containerWidth}; width: ${containerWidth}; margin: 0 auto; padding: 20px; background: white; border: 2px solid #333; box-sizing: border-box;">
             <div style="text-align: center; border-bottom: 3px solid #007bff; padding-bottom: 15px; margin-bottom: 20px;">
-                <h1 style="color: #007bff; margin: 0; font-size: 24px;">LAPORAN HARIAN PROYEK</h1>
+                <h1 style="color: #007bff; margin: 0; font-size: ${titleFontSize};">LAPORAN HARIAN PROYEK</h1>
                 <p style="color: #666; margin: 5px 0 0 0; font-size: 14px;">Generated on ${new Date().toLocaleString('id-ID')}</p>
             </div>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: ${fontSize};">
                 <tr>
                     <td style="width: 30%; padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #f8f9fa;">HARI/TANGGAL</td>
                     <td style="width: 70%; padding: 8px; border: 1px solid #ddd;">${draft.date || '-'}</td>
@@ -1153,7 +1276,7 @@ function buildReportHTML() {
                 </tr>
             </table>
             ${draft.masalah ? `
-            <div style="margin-bottom: 20px;">
+            <div style="margin-bottom: 20px; font-size: ${fontSize};">
                 <h3 style="color: #dc3545; margin-bottom: 10px; font-size: 16px;">MASALAH:</h3>
                 <div style="padding: 12px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
                     ${draft.masalah.replace(/\n/g, '<br>')}
@@ -1161,7 +1284,7 @@ function buildReportHTML() {
             </div>
             ` : ''}
             ${draft.bahan && draft.bahan.length > 0 ? `
-            <div style="margin-bottom: 20px;">
+            <div style="margin-bottom: 20px; font-size: ${fontSize};">
                 <h3 style="color: #28a745; margin-bottom: 10px; font-size: 16px;">BAHAN YANG DIGUNAKAN:</h3>
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
@@ -1183,17 +1306,17 @@ function buildReportHTML() {
                 </table>
             </div>
             ` : ''}
-            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+            <div style="${isMobile ? 'flex-direction: column; gap: 15px;' : 'display: flex; gap: 20px;'} margin-bottom: 20px;">
                 ${draft.beforePhoto ? `
-                <div style="flex: 1;">
+                <div style="${isMobile ? 'width: 100%;' : 'flex: 1;'}">
                     <h4 style="color: #666; margin-bottom: 8px; font-size: 14px;">FOTO SEBELUM</h4>
-                    <img src="${draft.beforePhoto}" style="max-width: 100%; height: 200px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
+                    <img src="${draft.beforePhoto}" style="max-width: 100%; height: ${photoHeight}; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
                 ` : ''}
                 ${draft.afterPhoto ? `
-                <div style="flex: 1;">
+                <div style="${isMobile ? 'width: 100%;' : 'flex: 1;'}">
                     <h4 style="color: #666; margin-bottom: 8px; font-size: 14px;">FOTO SESUDAH</h4>
-                    <img src="${draft.afterPhoto}" style="max-width: 100%; height: 200px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
+                    <img src="${draft.afterPhoto}" style="max-width: 100%; height: ${photoHeight}; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
                 ` : ''}
             </div>
