@@ -1229,98 +1229,99 @@ function buildReportHTML() {
     // Check if we're on a mobile device
     const isMobile = window.innerWidth <= 768;
     
-    // Adjust styles for mobile
-    const containerWidth = isMobile ? '100%' : '800px';
+    // Make the report wider for better readability
+    const containerWidth = isMobile ? '100%' : '1000px'; // Increased from 800px to 1000px
     const fontSize = isMobile ? '14px' : '16px';
-    const titleFontSize = isMobile ? '20px' : '24px';
-    const photoHeight = isMobile ? '150px' : '200px';
+    const titleFontSize = isMobile ? '22px' : '28px'; // Increased title size
+    const photoHeight = isMobile ? '180px' : '250px'; // Increased photo height
+    const tablePadding = isMobile ? '6px' : '10px'; // Increased padding
     
     return `
-        <div style="font-family: Arial, sans-serif; max-width: ${containerWidth}; width: ${containerWidth}; margin: 0 auto; padding: 20px; background: white; border: 2px solid #333; box-sizing: border-box;">
-            <div style="text-align: center; border-bottom: 3px solid #007bff; padding-bottom: 15px; margin-bottom: 20px;">
+        <div style="font-family: Arial, sans-serif; max-width: ${containerWidth}; width: ${containerWidth}; margin: 0 auto; padding: 30px; background: white; border: 3px solid #333; box-sizing: border-box;">
+            <div style="text-align: center; border-bottom: 4px solid #007bff; padding-bottom: 20px; margin-bottom: 25px;">
                 <h1 style="color: #007bff; margin: 0; font-size: ${titleFontSize};">LAPORAN HARIAN PROYEK</h1>
-                <p style="color: #666; margin: 5px 0 0 0; font-size: 14px;">Generated on ${new Date().toLocaleString('id-ID')}</p>
+                <p style="color: #666; margin: 8px 0 0 0; font-size: 16px;">Generated on ${new Date().toLocaleString('id-ID')}</p>
             </div>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: ${fontSize};">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: ${fontSize};">
                 <tr>
-                    <td style="width: 30%; padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #f8f9fa;">HARI/TANGGAL</td>
-                    <td style="width: 70%; padding: 8px; border: 1px solid #ddd;">${draft.date || '-'}</td>
+                    <td style="width: 35%; padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">HARI/TANGGAL</td>
+                    <td style="width: 65%; padding: ${tablePadding}; border: 2px solid #ddd;">${draft.date || '-'}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #f8f9fa;">JENIS PEKERJAAN</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${draft.jenisPekerjaan || '-'}</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">JENIS PEKERJAAN</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd;">${draft.jenisPekerjaan || '-'}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #f8f9fa;">STA. AWAL</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${draft.staAwal || '-'}</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">STA. AWAL</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd;">${draft.staAwal || '-'}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #f8f9fa;">STA. AKHIR</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${draft.staAkhir || '-'}</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">STA. AKHIR</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd;">${draft.staAkhir || '-'}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #f8f9fa;">PANJANG</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${draft.panjang || '-'}</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">PANJANG</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd;">${draft.panjang || '-'}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #f8f9fa;">RENCANA HARI INI</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${draft.rencana || '-'}</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">RENCANA HARI INI</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd;">${draft.rencana || '-'}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #f8f9fa;">REALISASI HARI INI</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${draft.realisasi || '-'}</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">REALISASI HARI INI</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd;">${draft.realisasi || '-'}</td>
                 </tr>
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; background: #f8f9fa;">DEVIASI</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; color: ${deviasiColor}; font-weight: bold;">${draft.deviasi || '-'}</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">DEVIASI</td>
+                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; color: ${deviasiColor}; font-weight: bold;">${draft.deviasi || '-'}</td>
                 </tr>
             </table>
             ${draft.masalah ? `
-            <div style="margin-bottom: 20px; font-size: ${fontSize};">
-                <h3 style="color: #dc3545; margin-bottom: 10px; font-size: 16px;">MASALAH:</h3>
-                <div style="padding: 12px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+            <div style="margin-bottom: 25px; font-size: ${fontSize};">
+                <h3 style="color: #dc3545; margin-bottom: 12px; font-size: 18px;">MASALAH:</h3>
+                <div style="padding: 15px; background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 6px;">
                     ${draft.masalah.replace(/\n/g, '<br>')}
                 </div>
             </div>
             ` : ''}
             ${draft.bahan && draft.bahan.length > 0 ? `
-            <div style="margin-bottom: 20px; font-size: ${fontSize};">
-                <h3 style="color: #28a745; margin-bottom: 10px; font-size: 16px;">BAHAN YANG DIGUNAKAN:</h3>
+            <div style="margin-bottom: 25px; font-size: ${fontSize};">
+                <h3 style="color: #28a745; margin-bottom: 12px; font-size: 18px;">BAHAN YANG DIGUNAKAN:</h3>
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: #28a745; color: white;">
-                            <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">MATERIAL</th>
-                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">QTY</th>
-                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">SATUAN</th>
+                            <th style="padding: 12px; border: 2px solid #ddd; text-align: left;">MATERIAL</th>
+                            <th style="padding: 12px; border: 2px solid #ddd; text-align: center;">QTY</th>
+                            <th style="padding: 12px; border: 2px solid #ddd; text-align: center;">SATUAN</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${draft.bahan.map(item => `
                             <tr>
-                                <td style="padding: 8px; border: 1px solid #ddd;">${item.material}</td>
-                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${item.qty}</td>
-                                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${item.satuan}</td>
+                                <td style="padding: ${tablePadding}; border: 2px solid #ddd;">${item.material}</td>
+                                <td style="padding: ${tablePadding}; border: 2px solid #ddd; text-align: center;">${item.qty}</td>
+                                <td style="padding: ${tablePadding}; border: 2px solid #ddd; text-align: center;">${item.satuan}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
             ` : ''}
-            <div style="${isMobile ? 'flex-direction: column; gap: 15px;' : 'display: flex; gap: 20px;'} margin-bottom: 20px;">
+            <div style="${isMobile ? 'flex-direction: column; gap: 20px;' : 'display: flex; gap: 25px;'} margin-bottom: 25px;">
                 ${draft.beforePhoto ? `
                 <div style="${isMobile ? 'width: 100%;' : 'flex: 1;'}">
-                    <h4 style="color: #666; margin-bottom: 8px; font-size: 14px;">FOTO SEBELUM</h4>
-                    <img src="${draft.beforePhoto}" style="max-width: 100%; height: ${photoHeight}; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
+                    <h4 style="color: #666; margin-bottom: 10px; font-size: 16px;">FOTO SEBELUM</h4>
+                    <img src="${draft.beforePhoto}" style="max-width: 100%; height: ${photoHeight}; object-fit: cover; border: 2px solid #ddd; border-radius: 6px;">
                 </div>
                 ` : ''}
                 ${draft.afterPhoto ? `
                 <div style="${isMobile ? 'width: 100%;' : 'flex: 1;'}">
-                    <h4 style="color: #666; margin-bottom: 8px; font-size: 14px;">FOTO SESUDAH</h4>
-                    <img src="${draft.afterPhoto}" style="max-width: 100%; height: ${photoHeight}; object-fit: cover; border: 1px solid #ddd; border-radius: 4px;">
+                    <h4 style="color: #666; margin-bottom: 10px; font-size: 16px;">FOTO SESUDAH</h4>
+                    <img src="${draft.afterPhoto}" style="max-width: 100%; height: ${photoHeight}; object-fit: cover; border: 2px solid #ddd; border-radius: 6px;">
                 </div>
                 ` : ''}
             </div>
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px dashed #ddd; color: #666; font-size: 12px;">
+            <div style="text-align: center; margin-top: 35px; padding-top: 25px; border-top: 3px dashed #ddd; color: #666; font-size: 14px;">
                 <p>Laporan ini digenerate secara otomatis oleh Sistem Laporan Harian Proyek</p>
             </div>
         </div>
