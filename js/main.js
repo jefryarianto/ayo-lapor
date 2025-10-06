@@ -661,7 +661,7 @@ function loadBahanData() {
             if (b.material) {
                 selectedMaterials.add(b.material);
             }
-            addBahanRow(b.material, b.qty, b.satuan);
+            addBahanRow(b.material, b.qty);
         });
     } else {
         addBahanRow();
@@ -671,7 +671,7 @@ function loadBahanData() {
     updateMaterialOptions();
 }
 
-function addBahanRow(material = '', qty = '', satuan = '') {
+function addBahanRow(material = '', qty = '') {
     const container = document.getElementById('bahanContainer');
     const row = document.createElement('div');
     row.className = 'bahan-row';
@@ -684,8 +684,7 @@ function addBahanRow(material = '', qty = '', satuan = '') {
             <option value="BATU PECAH" ${material === 'BATU PECAH' ? 'selected' : ''}>BATU PECAH</option>
             <option value="tambah-baru">➕ TAMBAH BARU</option>
         </select>
-        <input type="text" class="qty-input" placeholder="QTY" value="${qty}">
-        <input type="text" class="satuan-input" placeholder="SATUAN" readonly value="${satuan}">
+        <input type="text" class="qty-input" placeholder="QTY DENGAN SATUAN (Contoh: 12.50 ZAK)" value="${qty}">
         <button class="remove-row-btn">-</button>
     `;
     container.appendChild(row);
@@ -725,11 +724,9 @@ function updateMaterialOptions() {
 
 function updateSatuan(select) {
     const value = select.value;
-    const row = select.closest('.bahan-row');
-    const satuanInput = row.querySelector('.satuan-input');
     
     if (value === 'tambah-baru') {
-        showTambahMaterialModal(row);
+        showTambahMaterialModal(select.closest('.bahan-row'));
         return;
     }
     
@@ -739,13 +736,6 @@ function updateSatuan(select) {
     // Update the options in all selects
     updateMaterialOptions();
     
-    const satuanMap = {
-        'SEMEN': 'ZAK',
-        'PASIR': 'M3',
-        'BATU PASANG': 'M3',
-        'BATU PECAH': 'M3'
-    };
-    satuanInput.value = satuanMap[value] || '';
     updateBahanData();
 }
 
@@ -766,9 +756,16 @@ function updateBahanData() {
     rows.forEach(row => {
         const material = row.querySelector('.material-select').value;
         const qty = row.querySelector('.qty-input').value;
-        const satuan = row.querySelector('.satuan-input').value;
+        // Extract unit from qty input (if present)
+        let unit = '';
+        if (qty) {
+            const match = qty.match(/^([\d.]+)\s*([A-Z0-9]+)?$/i);
+            if (match) {
+                unit = match[2] || '';
+            }
+        }
         if (material && material !== 'tambah-baru') {
-            draft.bahan.push({ material, qty, satuan });
+            draft.bahan.push({ material, qty, satuan: unit });
         }
     });
     
@@ -1190,36 +1187,152 @@ function removeRow(button) {
 function generateReport() {
     showLoading(true);
     const preview = document.getElementById('preview');
-    preview.innerHTML = buildReportHTML();
+    
+    // Log the draft data for debugging
+    console.log('Draft data:', draft);
+    
+    // Temporarily remove height constraints for better capture
+    const originalStyles = {
+        maxHeight: preview.style.maxHeight,
+        overflowY: preview.style.overflowY,
+        display: preview.style.display,
+        maxWidth: preview.style.maxWidth,
+        overflowX: preview.style.overflowX
+    };
+    
+    preview.style.maxHeight = 'none';
+    preview.style.overflowY = 'visible';
     preview.style.display = 'block';
+    preview.style.maxWidth = '100%';
+    preview.style.overflowX = 'visible'; // Changed to visible to ensure all content is shown
     
-    // Get device pixel ratio for better quality on mobile
-    const pixelRatio = Math.min(window.devicePixelRatio || 2, 3);
+    const reportHTML = buildReportHTML();
+    preview.innerHTML = reportHTML;
     
-    html2canvas(preview, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        width: preview.scrollWidth,
-        height: preview.scrollHeight,
-        dpi: 300,
-        letterRendering: true,
-        allowTaint: true,
-        pixelRatio: pixelRatio // Use device pixel ratio for better quality
-    }).then(canvas => {
-        const link = document.createElement('a');
-        const dateStr = new Date().toISOString().split('T')[0];
-        link.download = `laporan_harian_${dateStr}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        showLoading(false);
-        showNotification('Laporan PNG berhasil diunduh', 'success');
-    }).catch(err => {
-        console.error('Error generating report:', err);
-        showLoading(false);
-        showNotification('Gagal mengenerate laporan', 'error');
-    });
+    // Log the generated HTML for debugging
+    console.log('Generated report HTML:', reportHTML);
+    
+    // Force reflow to ensure DOM is fully rendered before capturing
+    preview.offsetHeight;
+    
+    // Use a longer delay to ensure all images are loaded
+    setTimeout(() => {
+        // Check if images are loaded
+        const images = preview.querySelectorAll('img');
+        let loadedImages = 0;
+        const totalImages = images.length;
+        
+        console.log('Total images found:', totalImages);
+        
+        if (totalImages === 0) {
+            // No images, proceed immediately
+            captureReport();
+            return;
+        }
+        
+        // Wait for all images to load
+        const checkImageLoad = () => {
+            loadedImages = 0;
+            images.forEach(img => {
+                if (img.complete && img.naturalHeight !== 0) {
+                    loadedImages++;
+                }
+            });
+            
+            console.log('Loaded images:', loadedImages, '/', totalImages);
+            
+            if (loadedImages === totalImages) {
+                captureReport();
+            } else {
+                // Check again in 500ms
+                setTimeout(checkImageLoad, 500);
+            }
+        };
+        
+        // Attach load and error handlers to images
+        images.forEach((img, index) => {
+            console.log('Image', index, 'src:', img.src);
+            if (!img.complete) {
+                img.addEventListener('load', () => {
+                    console.log('Image', index, 'loaded');
+                    // Check if all images are now loaded
+                    setTimeout(checkImageLoad, 100);
+                });
+                
+                img.addEventListener('error', () => {
+                    console.log('Image', index, 'failed to load');
+                    // Still count errored images to avoid hanging
+                    setTimeout(checkImageLoad, 100);
+                });
+            }
+        });
+        
+        // Start checking
+        checkImageLoad();
+        
+        // Timeout fallback
+        setTimeout(() => {
+            console.log('Image loading timeout, proceeding with capture');
+            captureReport();
+        }, 5000);
+    }, 1500); // Increased delay to 1500ms to ensure rendering
+    
+    function captureReport() {
+        console.log('Capturing report...');
+        
+        // Get device pixel ratio for better quality on mobile
+        const pixelRatio = Math.min(window.devicePixelRatio || 2, 3);
+        
+        // Calculate the actual dimensions of the preview content
+        const scrollWidth = preview.scrollWidth;
+        const scrollHeight = preview.scrollHeight;
+        
+        console.log('Preview dimensions:', scrollWidth, 'x', scrollHeight);
+        
+        html2canvas(preview, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+            width: scrollWidth,
+            height: scrollHeight,
+            dpi: 300,
+            letterRendering: true,
+            allowTaint: true,
+            pixelRatio: pixelRatio, // Use device pixel ratio for better quality
+            scrollX: 0,
+            scrollY: 0,
+            x: 0,
+            y: 0
+        }).then(canvas => {
+            console.log('Report captured successfully');
+            const link = document.createElement('a');
+            const dateStr = new Date().toISOString().split('T')[0];
+            link.download = `laporan_harian_${dateStr}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            // Restore original styles
+            preview.style.maxHeight = originalStyles.maxHeight;
+            preview.style.overflowY = originalStyles.overflowY;
+            preview.style.maxWidth = originalStyles.maxWidth;
+            preview.style.overflowX = originalStyles.overflowX;
+            
+            showLoading(false);
+            showNotification('Laporan PNG berhasil diunduh', 'success');
+        }).catch(err => {
+            console.error('Error generating report:', err);
+            
+            // Restore original styles even on error
+            preview.style.maxHeight = originalStyles.maxHeight;
+            preview.style.overflowY = originalStyles.overflowY;
+            preview.style.maxWidth = originalStyles.maxWidth;
+            preview.style.overflowX = originalStyles.overflowX;
+            
+            showLoading(false);
+            showNotification('Gagal mengenerate laporan: ' + err.message, 'error');
+        });
+    }
 }
 
 function buildReportHTML() {
@@ -1227,20 +1340,27 @@ function buildReportHTML() {
     const deviasiColor = getDeviasiColor(draft.deviasi);
     
     // Set report dimensions to fit well within the preview container
-    const containerWidth = '100%'; // Use full width of container
+    const containerWidth = '100%'; // Use responsive width to fit container
     const fontSize = '16px';
     const titleFontSize = '28px';
     const photoHeight = '300px';
     const photoWidth = '100%';
-    const tablePadding = '10px';
+    const tablePadding = '12px'; // Slightly increased padding
+    
+    // Use the date from draft instead of current date
+    const reportDate = draft.date || formatTanggalIndonesia(new Date());
+    
+    // Process photo URLs to ensure they work with html2canvas
+    const beforePhotoUrl = draft.beforePhoto ? draft.beforePhoto : null;
+    const afterPhotoUrl = draft.afterPhoto ? draft.afterPhoto : null;
     
     return `
-        <div style="font-family: Arial, sans-serif; width: ${containerWidth}; margin: 0 auto; padding: 30px; background: white; border: 3px solid #333; box-sizing: border-box;">
+        <div style="font-family: Arial, sans-serif; width: 100%; max-width: 1400px; margin: 0 auto; padding: 30px; background: white; border: 3px solid #333; box-sizing: border-box;">
             <div style="text-align: center; border-bottom: 4px solid #007bff; padding-bottom: 20px; margin-bottom: 25px;">
                 <h1 style="color: #007bff; margin: 0; font-size: ${titleFontSize};">LAPORAN HARIAN PROYEK</h1>
-                <p style="color: #666; margin: 8px 0 0 0; font-size: 16px;">Generated on ${new Date().toLocaleString('id-ID')}</p>
+                <p style="color: #666; margin: 8px 0 0 0; font-size: 16px;">Generated on ${reportDate}</p>
             </div>
-            <div style="overflow-y: auto;">
+            <div style="overflow-y: visible; overflow-x: visible;">
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: ${fontSize};">
                     <tr>
                         <td style="width: 35%; padding: ${tablePadding}; border: 2px solid #ddd; font-weight: bold; background: #f8f9fa;">HARI/TANGGAL</td>
@@ -1275,14 +1395,12 @@ function buildReportHTML() {
                         <td style="padding: ${tablePadding}; border: 2px solid #ddd; color: ${deviasiColor}; font-weight: bold;">${draft.deviasi || '-'}</td>
                     </tr>
                 </table>
-                ${draft.masalah ? `
                 <div style="margin-bottom: 25px; font-size: ${fontSize};">
                     <h3 style="color: #dc3545; margin-bottom: 12px; font-size: 18px;">MASALAH:</h3>
-                    <div style="padding: 15px; background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 6px;">
-                        ${draft.masalah.replace(/\n/g, '<br>')}
+                    <div style="padding: 15px; background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 6px; min-height: 50px;">
+                        ${draft.masalah && draft.masalah.replace(/\n/g, '<br>') || 'Tidak ada masalah yang dilaporkan'}
                     </div>
                 </div>
-                ` : ''}
                 ${draft.bahan && draft.bahan.length > 0 ? `
                 <div style="margin-bottom: 25px; font-size: ${fontSize};">
                     <h3 style="color: #28a745; margin-bottom: 12px; font-size: 18px;">BAHAN YANG DIGUNAKAN:</h3>
@@ -1291,15 +1409,13 @@ function buildReportHTML() {
                             <tr style="background: #28a745; color: white;">
                                 <th style="padding: 12px; border: 2px solid #ddd; text-align: left;">MATERIAL</th>
                                 <th style="padding: 12px; border: 2px solid #ddd; text-align: center;">QTY</th>
-                                <th style="padding: 12px; border: 2px solid #ddd; text-align: center;">SATUAN</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${draft.bahan.map(item => `
                                 <tr>
                                     <td style="padding: ${tablePadding}; border: 2px solid #ddd;">${item.material}</td>
-                                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; text-align: center;">${item.qty}</td>
-                                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; text-align: center;">${item.satuan}</td>
+                                    <td style="padding: ${tablePadding}; border: 2px solid #ddd; text-align: center;">${parseFloat(item.qty).toFixed(2)} ${item.satuan}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -1307,16 +1423,16 @@ function buildReportHTML() {
                 </div>
                 ` : ''}
                 <div style="display: flex; gap: 25px; margin-bottom: 25px; flex-wrap: wrap;">
-                    ${draft.beforePhoto ? `
+                    ${beforePhotoUrl ? `
                     <div style="flex: 1; min-width: 300px;">
                         <h4 style="color: #666; margin-bottom: 10px; font-size: 16px;">FOTO SEBELUM</h4>
-                        <img src="${draft.beforePhoto}" style="width: ${photoWidth}; height: ${photoHeight}; object-fit: cover; border: 2px solid #ddd; border-radius: 6px;">
+                        <img src="${beforePhotoUrl}" style="width: 100%; max-width: 100%; height: auto; max-height: 400px; object-fit: contain; border: 2px solid #ddd; border-radius: 6px;" crossorigin="anonymous">
                     </div>
                     ` : ''}
-                    ${draft.afterPhoto ? `
+                    ${afterPhotoUrl ? `
                     <div style="flex: 1; min-width: 300px;">
                         <h4 style="color: #666; margin-bottom: 10px; font-size: 16px;">FOTO SESUDAH</h4>
-                        <img src="${draft.afterPhoto}" style="width: ${photoWidth}; height: ${photoHeight}; object-fit: cover; border: 2px solid #ddd; border-radius: 6px;">
+                        <img src="${afterPhotoUrl}" style="width: 100%; max-width: 100%; height: auto; max-height: 400px; object-fit: contain; border: 2px solid #ddd; border-radius: 6px;" crossorigin="anonymous">
                     </div>
                     ` : ''}
                 </div>
@@ -1337,9 +1453,9 @@ function getDeviasiClass(deviasi) {
 
 function getDeviasiColor(deviasi) {
     if (!deviasi) return '#666';
-    if (deviasi.includes('+')) return '#27ae60';
-    if (deviasi.includes('-')) return '#e74c3c';
-    return '#666';
+    if (deviasi.toString().includes('+')) return '#27ae60'; // Green for positive
+    if (deviasi.toString().includes('-')) return '#e74c3c'; // Red for negative
+    return '#666'; // Gray for zero
 }
 
 // ==================== RESET FUNCTIONS ====================

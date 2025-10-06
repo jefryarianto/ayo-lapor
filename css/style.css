@@ -896,7 +896,13 @@ small {
   box-shadow: var(--shadow-md);
   max-height: 90vh; /* Limit height to prevent overflow */
   overflow-y: auto; /* Allow scrolling if content exceeds height */
+  max-width: 100%; /* Ensure it doesn't exceed viewport */
+  overflow-x: auto; /* Allow horizontal scrolling if needed */
+  width: 100%; /* Ensure it takes full width */
+  box-sizing: border-box; /* Include padding in width calculation */
+  min-width: 1400px; /* Ensure minimum width to accommodate report as per project requirements */
 }
+
 /* ==================== ANIMATIONS ==================== */
 @keyframes fadeIn {
   from {
